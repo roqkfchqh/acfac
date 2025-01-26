@@ -25,10 +25,15 @@ dependencies {
 	//test
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	testImplementation 'org.springframework.kafka:spring-kafka-test'
 
 	//lombok
 	implementation 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
+
+	//kafka
+	implementation 'org.springframework.kafka:spring-kafka'
+	implementation 'org.apache.kafka:kafka-clients'
 }
 
 tasks.named('test') {
