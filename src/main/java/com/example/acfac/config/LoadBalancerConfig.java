@@ -3,6 +3,7 @@ package com.example.acfac.config;
 import com.example.acfac.common.HealthCheckService;
 import com.example.acfac.common.LoadBalancerStrategy;
 import com.example.acfac.concrete.Weighted;
+import com.example.acfac.values.LoadBalancerConfigProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -14,7 +15,7 @@ public class LoadBalancerConfig {
 
     @Bean
     @ConditionalOnProperty(name = "loadbalancer.strategy", havingValue = "weighted")
-    public LoadBalancerStrategy weightedStrategy(HealthCheckService healthCheckService) {
-        return new Weighted(healthCheckService);
+    public LoadBalancerStrategy weightedStrategy(HealthCheckService healthCheckService, LoadBalancerConfigProperties config) {
+        return new Weighted(healthCheckService, config);
     }
 }
