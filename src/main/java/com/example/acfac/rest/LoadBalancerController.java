@@ -6,10 +6,11 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @RestController
@@ -22,13 +23,14 @@ public class LoadBalancerController {
         this.requestProcessor = requestProcessor;
     }
 
-    @GetMapping("/forward")
-    public String forward(
+    @RequestMapping(value = "/forward", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PATCH, RequestMethod.PUT, RequestMethod.DELETE})
+    public Mono<String> forward(
         HttpServletRequest servletRequest,
         @RequestParam String userRequest
     ) {
         String clientIp = getClientIp(servletRequest);
-        return requestProcessor.processRequest(userRequest, clientIp);
+        String httpMethod = servletRequest.getMethod();
+        return requestProcessor.processRequest(userRequest, clientIp, httpMethod);
     }
 
     private String getClientIp(HttpServletRequest request) {

@@ -11,7 +11,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Value;
 
-public class Weighted implements LoadBalancerStrategy {
+public class WeightedStrategy implements LoadBalancerStrategy {
 
     //동적 가중치
     private final Map<String, Integer> serverWeights = new ConcurrentHashMap<>();
@@ -21,14 +21,14 @@ public class Weighted implements LoadBalancerStrategy {
     private final ScheduledExecutorService scheduler;
 
     @Value("${weightUpdate.period}")
-    private static int period;
+    private int period;
 
     /**
      * 가중치 업데이트는 동시성 문제를 방지하기 위해 단일스레드에서만 실행
      * @param healthCheckService 서버 상태 확인 서비스
      * @param config 서버 URL & 초기가중치 설정값
      */
-    public Weighted(HealthCheckService healthCheckService, LoadBalancerConfigProperties config) {
+    public WeightedStrategy(HealthCheckService healthCheckService, LoadBalancerConfigProperties config) {
         this.healthCheckService = healthCheckService;
         this.scheduler = Executors.newScheduledThreadPool(1);
         initialWeights(config);

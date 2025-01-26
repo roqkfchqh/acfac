@@ -1,54 +1,55 @@
 package com.example.acfac.common;
 
 import com.example.acfac.kafka.KafkaRequestProducer;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class RequestProcessor {
 
     private final LoadBalancer loadBalancer;
     private final KafkaRequestProducer kafkaRequestProducer;
+    private final WebClient webClient = WebClient.create();
 
     /**
-     * 클라이언트 요청 처리 -> 요청 정보 kafka 로깅
-     * @param request 클라이언트 요청 데이터(JSON)
-     * @param clientIp 클라이언트 ip (ipV6)
-     * @return 서버 응답 데이터
+     * 클라이언트 요청 처리 (비동기 방식)
+     *
+     * @param request 클라이언트 요청 데이터 (JSON 형식)
+     * @param clientIp 클라이언트 IP
+     * @param httpMethod HTTP 메서드 (GET, POST 등)
+     * @return Mono<String> 비동기 서버 응답 데이터
      */
-    public String processRequest(String request, String clientIp) {
+    public Mono<String> processRequest(String request, String clientIp, String httpMethod) {
         try {
             String serverUrl = loadBalancer.getNextServer();
-            kafkaRequestProducer.logRequest(clientIp, serverUrl);
-            URL url = new URL(serverUrl);
 
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setDoOutput(true);
-            connection.setRequestProperty("Content-Type", "application/json");
-
-            try (OutputStream os = connection.getOutputStream()) {
-                os.write(request.getBytes());
-                os.flush();
-            }
-
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = br.readLine()) != null) {
-                    response.append(line);
+            Mono<Void> kafkaLogging = Mono.fromRunnable(() -> {
+                try {
+                    kafkaRequestProducer.logRequest(clientIp, serverUrl);
+                } catch (Exception e) {
+                    log.error("kafka 서버 오류: {}", e.getMessage());
                 }
-                return response.toString();
+            });
+
+            HttpMethodStrategy strategy;
+            try {
+                strategy = HttpMethodStrategy.valueOf(httpMethod.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                return Mono.error(new UnsupportedOperationException("지원하지 않는 HTTP METHOD: " + httpMethod));
             }
+
+            //kafka 로깅과 HTTP 요청 조합
+            return kafkaLogging.then(
+                strategy.execute(webClient, serverUrl, request)
+            );
 
         } catch (Exception e) {
-            return "Error while processing request: " + e.getMessage();
+            return Mono.error(new RuntimeException(e.getMessage(), e));
         }
     }
 }
