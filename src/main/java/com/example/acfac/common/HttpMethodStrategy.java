@@ -8,25 +8,18 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public enum HttpMethodStrategy {
 
-    GET((client, url, request) ->
-        client.get()
+    GET((builder, url, request) ->
+        builder.build()
+            .get()
             .uri(url)
             .retrieve()
             .bodyToMono(String.class)
             .retry(2)
     ),
 
-    POST((client, url, request) ->
-        client.post()
-            .uri(url)
-            .bodyValue(request)
-            .retrieve()
-            .bodyToMono(String.class)
-            .retry(2)
-    ),
-
-    PUT((client, url, request) ->
-        client.put()
+    POST((builder, url, request) ->
+        builder.build()
+            .post()
             .uri(url)
             .bodyValue(request)
             .retrieve()
@@ -34,8 +27,9 @@ public enum HttpMethodStrategy {
             .retry(2)
     ),
 
-    PATCH((client, url, request) ->
-        client.patch()
+    PUT((builder, url, request) ->
+        builder.build()
+            .put()
             .uri(url)
             .bodyValue(request)
             .retrieve()
@@ -43,8 +37,19 @@ public enum HttpMethodStrategy {
             .retry(2)
     ),
 
-    DELETE((client, url, request) ->
-        client.delete()
+    PATCH((builder, url, request) ->
+        builder.build()
+            .patch()
+            .uri(url)
+            .bodyValue(request)
+            .retrieve()
+            .bodyToMono(String.class)
+            .retry(2)
+    ),
+
+    DELETE((builder, url, request) ->
+        builder.build()
+            .delete()
             .uri(url)
             .retrieve()
             .bodyToMono(String.class)
@@ -55,14 +60,14 @@ public enum HttpMethodStrategy {
 
     /**
      * WebClient 로 HTTP 요청 실행 (비동기 방식)
-     * @param client WebClient 인스턴스
+     * @param builder WebClient 인스턴스
      * @param url 요청 URL
      * @param request 요청 데이터
      * @return Mono<String> (비동기 응답데이터)
      */
-    public Mono<String> execute(WebClient client, String url, String request) {
+    public Mono<String> execute(WebClient.Builder builder, String url, String request) {
         try {
-            return action.apply(client, url, request)
+            return action.apply(builder, url, request)
                 .onErrorMap(WebClientResponseException.class, e ->
                     new RuntimeException("HTTP 에러: " + e.getStatusCode() + " - " + e.getResponseBodyAsString(), e)
                 )
@@ -74,6 +79,6 @@ public enum HttpMethodStrategy {
 
     @FunctionalInterface
     interface WebClientAction {
-        Mono<String> apply(WebClient client, String url, String request);
+        Mono<String> apply(WebClient.Builder builder, String url, String request);
     }
 }

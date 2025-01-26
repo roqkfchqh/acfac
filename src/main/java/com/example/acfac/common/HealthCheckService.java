@@ -3,9 +3,8 @@ package com.example.acfac.common;
 import com.example.acfac.values.LoadBalancerConfigProperties;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,7 +16,7 @@ import org.springframework.stereotype.Component;
 public class HealthCheckService {
 
     private final LoadBalancerConfigProperties configProperties;
-    private final CopyOnWriteArrayList<String> healthyServers = new CopyOnWriteArrayList<>();
+    private final ConcurrentLinkedQueue<String> healthyServers = new ConcurrentLinkedQueue<>();
 
     public List<String> getHealthyServers() {
         return List.copyOf(healthyServers);
@@ -25,7 +24,7 @@ public class HealthCheckService {
 
     @Scheduled(fixedRateString = "${healthcheck.fixedRate}")
     public void performHealthCheck() {
-        List<String> allServers = new ArrayList<>(configProperties.servers());
+        List<String> allServers = configProperties.servers();
 
         allServers.forEach(server -> {
             if (isServerHealthy(server)) {

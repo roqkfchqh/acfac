@@ -1,5 +1,6 @@
 package com.example.acfac.common;
 
+import com.example.acfac.concrete.LoadBalancer;
 import com.example.acfac.kafka.KafkaRequestProducer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +15,8 @@ public class RequestProcessor {
 
     private final LoadBalancer loadBalancer;
     private final KafkaRequestProducer kafkaRequestProducer;
-    private final WebClient webClient = WebClient.create();
+    private final WebClient.Builder builder;
+    private final HealthCheckService healthCheckService;
 
     /**
      * 클라이언트 요청 처리 (비동기 방식)
@@ -26,7 +28,7 @@ public class RequestProcessor {
      */
     public Mono<String> processRequest(String request, String clientIp, String httpMethod) {
         try {
-            String serverUrl = loadBalancer.getNextServer();
+            String serverUrl = loadBalancer.getNextServer(healthCheckService.getHealthyServers());
 
             Mono<Void> kafkaLogging = Mono.fromRunnable(() -> {
                 try {
@@ -45,7 +47,7 @@ public class RequestProcessor {
 
             //kafka 로깅과 HTTP 요청 조합
             return kafkaLogging.then(
-                strategy.execute(webClient, serverUrl, request)
+                strategy.execute(builder, serverUrl, request)
             );
 
         } catch (Exception e) {

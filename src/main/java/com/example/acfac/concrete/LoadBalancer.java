@@ -1,8 +1,8 @@
 package com.example.acfac.concrete;
 
 import com.example.acfac.common.HealthCheckService;
-import com.example.acfac.common.LoadBalancerStrategy;
 import com.example.acfac.values.LoadBalancerConfigProperties;
+import jakarta.annotation.PreDestroy;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -10,8 +10,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
-public class WeightedStrategy implements LoadBalancerStrategy {
+@Component
+public class LoadBalancer {
 
     //동적 가중치
     private final Map<String, Integer> serverWeights = new ConcurrentHashMap<>();
@@ -28,7 +30,7 @@ public class WeightedStrategy implements LoadBalancerStrategy {
      * @param healthCheckService 서버 상태 확인 서비스
      * @param config 서버 URL & 초기가중치 설정값
      */
-    public WeightedStrategy(HealthCheckService healthCheckService, LoadBalancerConfigProperties config) {
+    public LoadBalancer(HealthCheckService healthCheckService, LoadBalancerConfigProperties config) {
         this.healthCheckService = healthCheckService;
         this.scheduler = Executors.newScheduledThreadPool(1);
         initialWeights(config);
@@ -67,7 +69,6 @@ public class WeightedStrategy implements LoadBalancerStrategy {
      * @return 선택된 서버 URL
      * @throws IllegalStateException 사용가능한 서버 없는 경우
      */
-    @Override
     public String getNextServer(List<String> healthyServers) {
         int totalWeight = serverWeights.entrySet().stream()
             .filter(entry -> healthyServers.contains(entry.getKey()))
@@ -88,5 +89,10 @@ public class WeightedStrategy implements LoadBalancerStrategy {
         if (!scheduler.isShutdown()) {
             scheduler.shutdown();
         }
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        stopWeightUpdater();
     }
 }
