@@ -1,6 +1,8 @@
 package com.example.acfac.common;
 
 import com.example.acfac.values.LoadBalancerConfigProperties;
+import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleEntry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -46,20 +48,17 @@ public class HealthCheckService {   // TODO 서킷브레이커 설정 필요
             });
     }
 
-    private Mono<Boolean> isServerHealthyAsync(String serverUrl) {
-        return webClient.get()
-            .uri(serverUrl + "/actuator/health")
-            .retrieve()
-            .bodyToMono(Void.class)
-            .timeout(Duration.ofSeconds(3)) // 3초 이상 응답 없으면 타임아웃
-            .then(Mono.fromCallable(() -> true))
-            .onErrorResume(e -> {
-                log.error("Health check failed for {}: {}", serverUrl, e.getMessage());
-                return Mono.just(false);
-            });
+    public Mono<Integer> getResponseTime(String serverUrl) {
+        return checkServerHealthAndResponseTime(serverUrl)
+            .map(Map.Entry::getValue);
     }
 
-    public Mono<Integer> getResponseTime(String serverUrl) {
+    private Mono<Boolean> isServerHealthyAsync(String serverUrl) {
+        return checkServerHealthAndResponseTime(serverUrl)
+            .map(Map.Entry::getKey);
+    }
+
+    private Mono<SimpleEntry<Boolean, Integer>> checkServerHealthAndResponseTime(String serverUrl) {
         long startTime = System.currentTimeMillis();
 
         return webClient.get()
@@ -67,10 +66,12 @@ public class HealthCheckService {   // TODO 서킷브레이커 설정 필요
             .retrieve()
             .bodyToMono(Void.class)
             .timeout(Duration.ofSeconds(3))
-            .then(Mono.fromCallable(() -> (int) (System.currentTimeMillis() - startTime)))
+            .then(Mono.fromCallable(() ->
+                new AbstractMap.SimpleEntry<>(true, (int) (System.currentTimeMillis() - startTime))
+            ))
             .onErrorResume(e -> {
-                log.error("Failed to get response time for {}: {}", serverUrl, e.getMessage());
-                return Mono.just(configProperties.getMaxResponseTime());
+                log.error("Health check failed for {}: {}", serverUrl, e.getMessage());
+                return Mono.just(new AbstractMap.SimpleEntry<>(false, configProperties.getMaxResponseTime()));
             });
     }
 }
