@@ -1,6 +1,5 @@
-package com.example.acfac.concrete;
+package com.example.acfac.common;
 
-import com.example.acfac.common.HealthCheckService;
 import com.example.acfac.values.LoadBalancerConfigProperties;
 import jakarta.annotation.PreDestroy;
 import java.util.List;

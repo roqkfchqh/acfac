@@ -5,32 +5,29 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
 @Slf4j
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class LoadBalancerController {
 
     private final RequestProcessor requestProcessor;
 
-    public LoadBalancerController(RequestProcessor requestProcessor) {
-        this.requestProcessor = requestProcessor;
-    }
-
-    @RequestMapping(value = "/forward", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PATCH, RequestMethod.PUT, RequestMethod.DELETE})
+    @PostMapping(value = "/forward")
     public Mono<String> forward(
         HttpServletRequest servletRequest,
-        @RequestParam String userRequest
+        @RequestBody UserRequestDto dto
     ) {
         String clientIp = getClientIp(servletRequest);
-        String httpMethod = servletRequest.getMethod();
-        return requestProcessor.processRequest(userRequest, clientIp, httpMethod);
+        return requestProcessor.processRequest(dto, clientIp);
     }
 
     private String getClientIp(HttpServletRequest request) {

@@ -1,7 +1,8 @@
 package com.example.acfac.common;
 
-import com.example.acfac.concrete.LoadBalancer;
+import com.example.acfac.common.httpmethod.HttpMethodStrategy;
 import com.example.acfac.kafka.KafkaRequestProducer;
+import com.example.acfac.rest.UserRequestDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -21,12 +22,11 @@ public class RequestProcessor {
     /**
      * 클라이언트 요청 처리 (비동기 방식)
      *
-     * @param request 클라이언트 요청 데이터 (JSON 형식)
+     * @param dto 클라이언트 요청 데이터 (JSON 형식)
      * @param clientIp 클라이언트 IP
-     * @param httpMethod HTTP 메서드 (GET, POST 등)
      * @return Mono<String> 비동기 서버 응답 데이터
      */
-    public Mono<String> processRequest(String request, String clientIp, String httpMethod) {
+    public Mono<String> processRequest(UserRequestDto dto, String clientIp) {
         try {
             String serverUrl = loadBalancer.getNextServer(healthCheckService.getHealthyServers());
 
@@ -38,17 +38,14 @@ public class RequestProcessor {
                 }
             });
 
-            HttpMethodStrategy strategy;
             try {
-                strategy = HttpMethodStrategy.valueOf(httpMethod.toUpperCase());
+                HttpMethodStrategy strategy = HttpMethodStrategy.valueOf(dto.httpMethod().toUpperCase());
+                return kafkaLogging.then(
+                    strategy.execute(builder, serverUrl, dto.json())
+                );
             } catch (IllegalArgumentException e) {
-                return Mono.error(new UnsupportedOperationException("지원하지 않는 HTTP METHOD: " + httpMethod));
+                return Mono.error(new UnsupportedOperationException("지원하지 않는 HTTP METHOD: " + dto.httpMethod()));
             }
-
-            //kafka 로깅과 HTTP 요청 조합
-            return kafkaLogging.then(
-                strategy.execute(builder, serverUrl, request)
-            );
 
         } catch (Exception e) {
             return Mono.error(new RuntimeException(e.getMessage(), e));
