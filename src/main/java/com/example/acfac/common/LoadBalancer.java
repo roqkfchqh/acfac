@@ -10,6 +10,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 
 @Component
 @Slf4j
@@ -45,10 +46,14 @@ public class LoadBalancer {
                     log.warn("No healthy servers found.");
                     return;
                 }
-                healthyServers.forEach(server -> {
-                    int responseTime = healthCheckService.getResponseTime(server);
-                    updateWeight(server, responseTime);
-                });
+
+                Flux.fromIterable(healthyServers)
+                    .flatMap(server -> healthCheckService.getResponseTime(server)
+                        .map(responseTime -> Map.entry(server, responseTime))
+                    )
+                    .collectMap(Map.Entry::getKey, Map.Entry::getValue)
+                    .subscribe(responseTimeMap -> responseTimeMap.forEach(this::updateWeight));
+
             } catch (Exception e) {
                 log.error("Error during weight update: {}", e.getMessage());
             }
