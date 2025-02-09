@@ -7,7 +7,11 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,7 +26,43 @@ public class LoadBalancerController {
     private final RequestProcessor requestProcessor;
 
     @PostMapping(value = "/forward")
-    public Mono<String> forward(
+    public Mono<String> forwardPost(
+        HttpServletRequest servletRequest,
+        @RequestBody UserRequestDto dto
+    ) {
+        String clientIp = getClientIp(servletRequest);
+        return requestProcessor.processRequest(dto, clientIp);
+    }
+
+    @GetMapping(value = "/forward")
+    public Mono<String> forwardGet(
+        HttpServletRequest servletRequest,
+        @RequestBody UserRequestDto dto
+    ) {
+        String clientIp = getClientIp(servletRequest);
+        return requestProcessor.processRequest(dto, clientIp);
+    }
+
+    @PutMapping(value = "/forward")
+    public Mono<String> forwardPut(
+        HttpServletRequest servletRequest,
+        @RequestBody UserRequestDto dto
+    ) {
+        String clientIp = getClientIp(servletRequest);
+        return requestProcessor.processRequest(dto, clientIp);
+    }
+
+    @PatchMapping(value = "/forward")
+    public Mono<String> forwardPatch(
+        HttpServletRequest servletRequest,
+        @RequestBody UserRequestDto dto
+    ) {
+        String clientIp = getClientIp(servletRequest);
+        return requestProcessor.processRequest(dto, clientIp);
+    }
+
+    @DeleteMapping(value = "/forward")
+    public Mono<String> forwardDelete(
         HttpServletRequest servletRequest,
         @RequestBody UserRequestDto dto
     ) {
