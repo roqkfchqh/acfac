@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class HealthCheckService {
+public class HealthCheckService {   // TODO 서킷브레이커 설정필요
 
     private final LoadBalancerConfigProperties configProperties;
     private final ConcurrentMap<String, Boolean> healthyServers = new ConcurrentHashMap<>();

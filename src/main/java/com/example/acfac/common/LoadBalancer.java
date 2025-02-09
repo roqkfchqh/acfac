@@ -52,13 +52,14 @@ public class LoadBalancer {
             } catch (Exception e) {
                 log.error("Error during weight update: {}", e.getMessage());
             }
-        }, 0, configProperties.getWeightUpdatePeriod(), TimeUnit.SECONDS); // 수정
+        }, 0, configProperties.getWeightUpdatePeriod(), TimeUnit.SECONDS);
     }
 
     private void updateWeight(String server, int responseTime) {
         int baseWeight = initialWeights.getOrDefault(server, 1);
         int newWeight = Math.max(1, baseWeight * (10 - responseTime / 100));
         serverWeights.put(server, newWeight);
+        // TODO 가중치 설정방식 조정필요
     }
 
     public String getNextServer(List<String> healthyServers) {

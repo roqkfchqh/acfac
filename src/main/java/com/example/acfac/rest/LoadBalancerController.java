@@ -1,19 +1,16 @@
 package com.example.acfac.rest;
 
-import com.example.acfac.common.RequestProcessor;
+import com.example.acfac.config.HttpRequestProcessorStrategy;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.http.HttpMethod;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
@@ -23,51 +20,16 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class LoadBalancerController {
 
-    private final RequestProcessor requestProcessor;
+    private final HttpRequestProcessorStrategy processorStrategy;
 
-    @PostMapping(value = "/forward")
-    public Mono<String> forwardPost(
+    @RequestMapping(value = "/forward", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH, RequestMethod.DELETE})
+    public Mono<String> forward(
         HttpServletRequest servletRequest,
         @RequestBody UserRequestDto dto
     ) {
         String clientIp = getClientIp(servletRequest);
-        return requestProcessor.processRequest(dto, clientIp);
-    }
-
-    @GetMapping(value = "/forward")
-    public Mono<String> forwardGet(
-        HttpServletRequest servletRequest,
-        @RequestBody UserRequestDto dto
-    ) {
-        String clientIp = getClientIp(servletRequest);
-        return requestProcessor.processRequest(dto, clientIp);
-    }
-
-    @PutMapping(value = "/forward")
-    public Mono<String> forwardPut(
-        HttpServletRequest servletRequest,
-        @RequestBody UserRequestDto dto
-    ) {
-        String clientIp = getClientIp(servletRequest);
-        return requestProcessor.processRequest(dto, clientIp);
-    }
-
-    @PatchMapping(value = "/forward")
-    public Mono<String> forwardPatch(
-        HttpServletRequest servletRequest,
-        @RequestBody UserRequestDto dto
-    ) {
-        String clientIp = getClientIp(servletRequest);
-        return requestProcessor.processRequest(dto, clientIp);
-    }
-
-    @DeleteMapping(value = "/forward")
-    public Mono<String> forwardDelete(
-        HttpServletRequest servletRequest,
-        @RequestBody UserRequestDto dto
-    ) {
-        String clientIp = getClientIp(servletRequest);
-        return requestProcessor.processRequest(dto, clientIp);
+        HttpMethod method = HttpMethod.valueOf(servletRequest.getMethod());
+        return processorStrategy.getProcessor(method.name()).processRequest(dto, clientIp);
     }
 
     private String getClientIp(HttpServletRequest request) {
@@ -81,9 +43,9 @@ public class LoadBalancerController {
         try{
             InetAddress inetAddress = InetAddress.getByName(ip);
             if (inetAddress instanceof Inet6Address) {
-                return inetAddress.getHostAddress(); //ipV6
+                return inetAddress.getHostAddress(); // ipV6
             } else if (inetAddress != null) {
-                return inetAddress.getHostAddress(); //ipV4
+                return inetAddress.getHostAddress(); // ipV4
             }
         }catch(UnknownHostException e){
             log.info("Invalid Ip address: {}", ip);

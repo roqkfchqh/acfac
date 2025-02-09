@@ -16,7 +16,7 @@ public class LoadBalancerConfigProperties {
     private List<String> servers;
     private List<Integer> weights;
     private int maxResponseTime;
-    private int weightUpdatePeriod; // 추가
+    private int weightUpdatePeriod;
 
     @PostConstruct
     public void validate() {

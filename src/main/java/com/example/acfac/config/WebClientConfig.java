@@ -8,7 +8,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class WebClientConfig {
 
     @Bean
-    public WebClient.Builder webClientBuilder() {
-        return WebClient.builder();
+    public WebClient webClient() {
+        return WebClient.builder()
+            //TODO 커넥션 풀 설정 필요
+            .build();
     }
 }
